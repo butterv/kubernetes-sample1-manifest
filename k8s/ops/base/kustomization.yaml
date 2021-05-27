@@ -1,0 +1,11 @@
+resources:
+  - gateway/configmap.yaml
+  - gateway/deployment.yaml
+  - gateway/service.yaml
+  - sealed-secret/sealed-secret.yaml
+  - server/configmap.yaml
+  - server/deployment.yaml
+  - server/service.yaml
+
+configurations:
+  - argo-rollout/rollout-transform.yaml

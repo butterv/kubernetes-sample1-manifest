@@ -14,11 +14,11 @@ fi
 scripts_dir="$(dirname "$0")"
 $scripts_dir/enable_env_name.sh $1
 
-gcloud config set project kubernetes-sample1-$1
+gcloud config set project kubernetes-sample1
 gcloud kms encrypt \
-    --project=kubernetes-sample1-$1 \
+    --project=kubernetes-sample1 \
     --location=global \
-    --keyring=api \
+    --keyring=sealed-secret \
     --key=sealed-secret \
     --plaintext-file=sealed-secrets-key-$1.yaml \
     --ciphertext-file=sealed-secrets-key-$1.yaml.enc

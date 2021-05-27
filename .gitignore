@@ -1,7 +1,7 @@
 ### Manifest ###
+secret.yaml
+service-account.json
 sealed-secrets-key-dev.yaml
-sealed-secrets-key-production.yaml
-sealed-secrets-key-staging.yaml
 
 ### Mac ###
 .DS_Store
