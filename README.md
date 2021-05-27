@@ -1,0 +1,1 @@
+# kubernetes-sample1-manifest
