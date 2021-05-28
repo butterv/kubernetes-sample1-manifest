@@ -5,6 +5,11 @@ metadata:
 spec:
   replicas: 4
   revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: grpc-server
@@ -13,6 +18,7 @@ spec:
       labels:
         app: grpc-server
     spec:
+      terminationGracePeriodSeconds: 90
       containers:
         - name: grpc-server
           image: gcr.io/PROJECT_ID/app:COMMIT_SHA
@@ -30,16 +36,20 @@ spec:
           envFrom:
             - secretRef:
                 name: secret
-          readinessProbe:
-            exec:
-              command: ["/bin/grpc_health_probe", "-addr=:8080"]
-            initialDelaySeconds: 1
-          livenessProbe:
-            exec:
-              command: ["/bin/grpc_health_probe", "-addr=:8080"]
-            initialDelaySeconds: 1
+          # readinessProbe:
+          #   exec:
+          #     command: ["/bin/grpc_health_probe", "-addr=:8080"]
+          #   initialDelaySeconds: 10
+          # livenessProbe:
+          #   exec:
+          #     command: ["/bin/grpc_health_probe", "-addr=:8080"]
+          #   initialDelaySeconds: 10
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
         - name: envoy-proxy
-          image: envoyproxy/envoy-alpine:v1.18.3
+          image: envoyproxy/envoy-alpine:v1.14.4
           command: ["/bin/sh", "-c", "/usr/local/bin/envoy -c /etc/envoy/envoy.yaml"]
           resources:
             limits:
@@ -56,37 +66,45 @@ spec:
           volumeMounts:
             - name: envoy-volume
               mountPath: /etc/envoy
-          readinessProbe:
-            httpGet:
-              scheme: HTTP
-              path: /healthz
-              httpHeaders:
-                - name: x-envoy-livenessprobe
-                  value: healthz
-              port: 10000
-            initialDelaySeconds: 3
-          livenessProbe:
-            httpGet:
-              scheme: HTTP
-              path: /healthz
-              httpHeaders:
-                - name: x-envoy-livenessprobe
-                  value: healthz
-              port: 10000
-            initialDelaySeconds: 10
+          # readinessProbe:
+          #   httpGet:
+          #     scheme: HTTP
+          #     path: /healthz
+          #     httpHeaders:
+          #       - name: x-envoy-livenessprobe
+          #         value: healthz
+          #     port: 10000
+          #   initialDelaySeconds: 3
+          # livenessProbe:
+          #   httpGet:
+          #     scheme: HTTP
+          #     path: /healthz
+          #     httpHeaders:
+          #       - name: x-envoy-livenessprobe
+          #         value: healthz
+          #     port: 10000
+          #   initialDelaySeconds: 10
         - name: cloud-sql-proxy
-          image: gcr.io/cloudsql-docker/gce-proxy:1.19.1
+          image: gcr.io/cloudsql-docker/gce-proxy:1.19.2
           command:
             - "/cloud_sql_proxy"
             - "-instances=kubernetes-sample1:us-central1:kubernetes-sample1=tcp:3306"
             - "-credential_file=/secrets/service-account.json"
+            - "-term_timeout=15s"
           securityContext:
             runAsNonRoot: true
           volumeMounts:
           - name: secret
             mountPath: /secrets/
             readOnly: true
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 30"]
       volumes:
         - name: envoy-volume
           configMap:
-            name: envoy-gitops-sample-server-config
+            name: envoy-grpc-server-config
+        - name: secret
+          secret:
+            secretName: secret
